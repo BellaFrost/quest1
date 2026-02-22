@@ -1,0 +1,49 @@
+import asyncio
+import logging
+import os
+from pathlib import Path
+
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import CommandStart
+from aiogram.types import Message, FSInputFile
+
+logging.basicConfig(level=logging.INFO)
+
+TOKEN = os.getenv("TOKEN")                      # ← берём из переменных Bothost
+SECRET_CODE = "secret2026"                      # ← твой код
+FILE_PATH = "secret.pdf"                        # ← имя файла в репозитории
+
+if not TOKEN:
+    raise ValueError("TOKEN не задан в переменных окружения!")
+
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
+
+@dp.message(CommandStart())
+async def cmd_start(message: Message):
+    await message.answer("Привет! Напиши секретный код, чтобы получить файл.")
+
+@dp.message()
+async def check_code(message: Message):
+    if message.text.strip() != SECRET_CODE:
+        await message.answer("Неверный код.")
+        return
+
+    path = Path(FILE_PATH)
+    if not path.is_file():
+        await message.answer("Файл не найден на сервере 😢")
+        return
+
+    await message.answer_document(
+        document=FSInputFile(path),
+        caption="Вот твой секретный файл! 📄",
+        protect_content=True
+    )
+    await message.answer("Готово!")
+
+async def main():
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
