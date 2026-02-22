@@ -47,7 +47,11 @@ async def cmd_start(message: Message):
 @dp.message()
 async def check_code(message: Message):
     user_text = (message.text or "").strip()
-
+    
+    print("Получено от пользователя →", repr(user_text))     # ← покажет пробелы, если они есть
+    print("Ожидаемый код        →", repr(SECRET_CODE))
+    print("Равны?              →", user_text == SECRET_CODE)
+    
     if user_text == SECRET_CODE:
         await message.answer(SUCCESS_MESSAGE, disable_web_page_preview=False)
     else:
