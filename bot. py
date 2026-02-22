@@ -1,49 +1,84 @@
+# bot.py
 import asyncio
 import logging
 import os
-from pathlib import Path
 
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart
-from aiogram.types import Message, FSInputFile
+from aiogram.types import Message
+
+# ──────────────────────────────────────────────
+# Настройки (меняй здесь)
+# ──────────────────────────────────────────────
+
+# Секретный код (лучше хранить в переменных окружения, но для простоты оставим здесь)
+SECRET_CODE = "secret2026"               # ← твой код
+
+# Ссылка, которую отдаём при правильном коде
+# Примеры:
+#   - Google Drive (прямая ссылка): https://drive.google.com/uc?export=download&id=ФАЙЛ_ID
+#   - Яндекс.Диск: публичная ссылка вида https://disk.yandex.ru/d/xxxxxxx
+#   - Mega.nz, DropMeFiles, File.io и т.п.
+SECRET_LINK = "https://example.com/your-secret-file.zip"
+
+# Текст сообщения с ссылкой
+MESSAGE_TEXT = (
+    "Вот твоя секретная ссылка:\n"
+    f"{SECRET_LINK}\n\n"
+    "Скачай быстро — ссылка может быть временной или с ограничением по скачиваниям."
+)
+
+# Опционально: список разрешённых user_id (если хочешь ограничить доступ)
+ALLOWED_USERS = {123456789, 987654321}   # ← пустой список = всем разрешено
+
+# ──────────────────────────────────────────────
 
 logging.basicConfig(level=logging.INFO)
 
-TOKEN = os.getenv("TOKEN")                      # ← берём из переменных Bothost
-SECRET_CODE = "secret2026"                      # ← твой код
-FILE_PATH = "secret.pdf"                        # ← имя файла в репозитории
-
+TOKEN = os.getenv("TOKEN")
 if not TOKEN:
-    raise ValueError("TOKEN не задан в переменных окружения!")
+    raise ValueError("Переменная окружения TOKEN не задана!")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
+
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
-    await message.answer("Привет! Напиши секретный код, чтобы получить файл.")
+    await message.answer(
+        "Привет! 👋\n"
+        "Введи секретный код, чтобы получить ссылку на файл."
+    )
+
 
 @dp.message()
 async def check_code(message: Message):
-    if message.text.strip() != SECRET_CODE:
-        await message.answer("Неверный код.")
+    user_id = message.from_user.id
+    text = message.text.strip()
+
+    if text != SECRET_CODE:
+        await message.answer("Неверный код 😕")
         return
 
-    path = Path(FILE_PATH)
-    if not path.is_file():
-        await message.answer("Файл не найден на сервере 😢")
+    # Проверка на разрешённых пользователей (если список не пустой)
+    if ALLOWED_USERS and user_id not in ALLOWED_USERS:
+        await message.answer("Доступ запрещён.")
+        # Можно добавить лог админу:
+        # await bot.send_message(твой_id, f"Попытка доступа: {user_id}")
         return
 
-    await message.answer_document(
-        document=FSInputFile(path),
-        caption="Вот твой секретный файл! 📄",
-        protect_content=True
-    )
-    await message.answer("Готово!")
+    try:
+        await message.answer(MESSAGE_TEXT, disable_web_page_preview=False)
+        # disable_web_page_preview=False → Telegram покажет превью, если ссылка поддерживает
+    except Exception as e:
+        logging.error(f"Ошибка при отправке ссылки пользователю {user_id}: {e}")
+        await message.answer("Не удалось отправить ссылку. Попробуй позже.")
+
 
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
