@@ -1,4 +1,5 @@
 # bot.py
+
 import asyncio
 import logging
 import os
@@ -8,36 +9,31 @@ from aiogram.filters import CommandStart
 from aiogram.types import Message
 
 # ──────────────────────────────────────────────
-# Настройки (меняй здесь)
+# НАСТРОЙКИ
 # ──────────────────────────────────────────────
 
-# Секретный код (лучше хранить в переменных окружения, но для простоты оставим здесь)
-SECRET_CODE = "secret2026"               # ← твой код
+TOKEN = "8448232371:AAHvftDd8zu6Oj0_EdKkBsyABSpv75tSWK4"
 
-# Ссылка, которую отдаём при правильном коде
-# Примеры:
-#   - Google Drive (прямая ссылка): https://drive.google.com/uc?export=download&id=ФАЙЛ_ID
-#   - Яндекс.Диск: публичная ссылка вида https://disk.yandex.ru/d/xxxxxxx
-#   - Mega.nz, DropMeFiles, File.io и т.п.
-SECRET_LINK = "https://example.com/your-secret-file.zip"
+SECRET_CODE = "secret2026"               # ← поменяй на свой настоящий код
 
-# Текст сообщения с ссылкой
-MESSAGE_TEXT = (
-    "Вот твоя секретная ссылка:\n"
-    f"{SECRET_LINK}\n\n"
-    "Скачай быстро — ссылка может быть временной или с ограничением по скачиваниям."
+SUCCESS_LINK = "https://t.me/+vVK8maRuEEAxZDgy"
+
+SUCCESS_MESSAGE = (
+    "Код принят ✓\n"
+    "Вот ссылка:\n"
+    f"{SUCCESS_LINK}"
 )
 
-# Опционально: список разрешённых user_id (если хочешь ограничить доступ)
-ALLOWED_USERS = {123456789, 987654321}   # ← пустой список = всем разрешено
+WRONG_MESSAGE = "Некорректный код"
+
+START_MESSAGE = (
+    "Привет!\n"
+    "Введи секретный код, чтобы получить ссылку."
+)
 
 # ──────────────────────────────────────────────
 
 logging.basicConfig(level=logging.INFO)
-
-TOKEN = os.getenv("TOKEN")
-if not TOKEN:
-    raise ValueError("Переменная окружения TOKEN не задана!")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -45,38 +41,24 @@ dp = Dispatcher()
 
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
-    await message.answer(
-        "Привет! 👋\n"
-        "Введи секретный код, чтобы получить ссылку на файл."
-    )
+    await message.answer(START_MESSAGE)
 
 
 @dp.message()
 async def check_code(message: Message):
-    user_id = message.from_user.id
-    text = message.text.strip()
+    user_text = (message.text or "").strip()
 
-    if text != SECRET_CODE:
-        await message.answer("Неверный код 😕")
-        return
-
-    # Проверка на разрешённых пользователей (если список не пустой)
-    if ALLOWED_USERS and user_id not in ALLOWED_USERS:
-        await message.answer("Доступ запрещён.")
-        # Можно добавить лог админу:
-        # await bot.send_message(твой_id, f"Попытка доступа: {user_id}")
-        return
-
-    try:
-        await message.answer(MESSAGE_TEXT, disable_web_page_preview=False)
-        # disable_web_page_preview=False → Telegram покажет превью, если ссылка поддерживает
-    except Exception as e:
-        logging.error(f"Ошибка при отправке ссылки пользователю {user_id}: {e}")
-        await message.answer("Не удалось отправить ссылку. Попробуй позже.")
+    if user_text == SECRET_CODE:
+        await message.answer(SUCCESS_MESSAGE, disable_web_page_preview=False)
+    else:
+        await message.answer(WRONG_MESSAGE)
 
 
 async def main():
+    # Удаляем старый webhook (если был)
     await bot.delete_webhook(drop_pending_updates=True)
+    
+    # Запускаем получение обновлений
     await dp.start_polling(bot)
 
 
