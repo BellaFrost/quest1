@@ -14,7 +14,7 @@ from aiogram.types import Message
 
 TOKEN = "8448232371:AAHvftDd8zu6Oj0_EdKkBsyABSpv75tSWK4"
 
-SECRET_CODE = "123456"               # ← поменяй на свой настоящий код
+SECRET_CODE = "UPSJSU2LSM2BZ244"               # ← поменяй на свой настоящий код
 
 SUCCESS_LINK = "https://t.me/+vVK8maRuEEAxZDgy"
 
